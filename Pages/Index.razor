@@ -1,0 +1,82 @@
+﻿@page "/"
+@using System.Net.Http
+@inject HttpClient Http
+@inject IJSRuntime js
+
+<h1>Hello, world!</h1>
+
+Welcome to your new app.
+
+<SurveyPrompt Title="How is Blazor working for you?" />
+<input type="text" @bind="Url">
+<button @onclick="Clip">Go!</button>
+
+@code
+{
+    string Url { get; set; }
+
+    async Task Clip()
+    {
+
+        Debug.WriteLine("clip clicked " + Url);
+
+
+        if (!string.IsNullOrEmpty(Url))
+        {
+            SmartReader.Article article = await SmartReader.Reader.ParseArticleAsync("https://cors-anywhere.herokuapp.com/" + Url);
+
+            if (article.IsReadable)
+            {
+                //get all images in content and base64 them
+                string pattern = @"(?i)<img.*?src=""(?<url>.*?)"".*?>";
+                Regex rx = new Regex(pattern);
+                var content = article.Content;
+                foreach (Match m in rx.Matches(content))
+                {
+                    var url = m.Groups["url"].Value;
+                    var imageUri = new Uri(url);
+                    Http.DefaultRequestHeaders.Add("x-requested-with", "XMLHttpRequest");
+                    var imageBytes = await Http.GetByteArrayAsync("https://cors-anywhere.herokuapp.com/" + url);
+                    string imgPath = String.Format("{0}{1}{2}{3}", imageUri.Scheme, Uri.SchemeDelimiter, imageUri.Authority, imageUri.AbsolutePath);
+                    string headerImageExtension = System.IO.Path.GetExtension(imgPath).Replace(".", "");
+                    if (headerImageExtension == "jpg") headerImageExtension = "jpeg";
+
+                    string base64String = Convert.ToBase64String(imageBytes);
+
+                    content = content.Replace(m.Value, @"<img src=""data:image/" + headerImageExtension + ";base64, " + base64String + @""" />");
+                }
+
+
+
+                var header = "<h1>" + article.Title + "</h1>";
+                var uri = new Uri(Url);
+                header = header + "<h2>" + article.Author + " @ " + uri.Host.ToString() + "</h2>";
+
+                if (!string.IsNullOrEmpty(article.FeaturedImage))
+                {
+                    var imageUri = new Uri(article.FeaturedImage);
+                    var imageBytes = await Http.GetByteArrayAsync("https://cors-anywhere.herokuapp.com/" + article.FeaturedImage);
+                    string imgPath = String.Format("{0}{1}{2}{3}", imageUri.Scheme, Uri.SchemeDelimiter, imageUri.Authority, imageUri.AbsolutePath);
+                    string headerImageExtension = System.IO.Path.GetExtension(imgPath).Replace(".", "");
+                    if (headerImageExtension == "jpg") headerImageExtension = "jpeg";
+
+                    string base64String = Convert.ToBase64String(imageBytes);
+
+                    header = header + @"<img src=""data:image/" + headerImageExtension + ";base64, " + base64String + @""" />";
+                }
+
+                var cleanedHtml = header + content;
+                cleanedHtml = @"<html><head><meta charset=""UTF-8""></head><body>" + cleanedHtml + "</body></html>";
+
+                var bytes = System.Text.Encoding.Default.GetBytes(cleanedHtml);
+
+                char[] invalids = Path.GetInvalidFileNameChars();
+                var filename = new string(article.Title.Select(c => invalids.Contains(c) ? '_' : c).ToArray()).Replace(" ", "_");
+                FileUtil.SaveAs(js, filename + ".html", bytes);
+
+
+            }
+
+        }
+    }
+}
