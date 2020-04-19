@@ -8,12 +8,14 @@
 Welcome to your new app.
 
 <SurveyPrompt Title="How is Blazor working for you?" />
-<input type="text" @bind="Url">
+<input type="text" @bind="Url" placeholder="url...">
+<input type="text" @bind="Email" placeholder="email">
 <button @onclick="Clip">Go!</button>
 
 @code
 {
     string Url { get; set; }
+    string Email { get; set; }
 
     async Task Clip()
     {
@@ -66,15 +68,26 @@ Welcome to your new app.
                 }
 
                 var cleanedHtml = header + content;
-                cleanedHtml = @"<html><head><meta charset=""UTF-8""></head><body>" + cleanedHtml + "</body></html>";
+                cleanedHtml = @"<html><head></head><body>" + cleanedHtml + "</body></html>";
+                //cleanedHtml = @"<html><head><meta charset=""UTF-8""></head><body>" + cleanedHtml + "</body></html>";
 
-                var bytes = System.Text.Encoding.Default.GetBytes(cleanedHtml);
+
+                Encoding iso = Encoding.GetEncoding("ISO-8859-1");
+                Encoding utf8 = Encoding.UTF8;
+                byte[] utfBytes = utf8.GetBytes(cleanedHtml);
+                byte[] isoBytes = Encoding.Convert(utf8, iso, utfBytes);
+
 
                 char[] invalids = Path.GetInvalidFileNameChars();
-                var filename = new string(article.Title.Select(c => invalids.Contains(c) ? '_' : c).ToArray()).Replace(" ", "_");
-                FileUtil.SaveAs(js, filename + ".html", bytes);
+                var filename = new string(article.Title.Select(c => invalids.Contains(c) ? '_' : c).ToArray()).Replace(" ", "_") + ".html";
 
+                MultipartFormDataContent form = new MultipartFormDataContent();
+                form.Add(new StringContent(Email), "email");
+                form.Add(new StringContent(filename), "filename");
+                form.Add(new ByteArrayContent(isoBytes, 0, isoBytes.Length), "attachment", filename);
+                HttpResponseMessage response = await Http.PostAsync("https://prod-91.westeurope.logic.azure.com:443/workflows/4688941b82df448eb6e0a88b511dd602/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=ZlC2uIxY9hR4xSkDjTZDnqNQQAc9vXl6yrvf5awcoXU", form);
 
+                FileUtil.SaveAs(js, filename, isoBytes);
             }
 
         }
