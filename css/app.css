@@ -1,4 +1,9 @@
-﻿.e-container {
+﻿@import url('https://fonts.googleapis.com/css2?family=Kodchasan:wght@400;500&display=swap');
+html {
+    font-family: 'Kodchasan', sans-serif;
+}
+
+.e-container {
     max-width: 500px;
 }
 #go-button {
