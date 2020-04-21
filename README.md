@@ -1,4 +1,4 @@
-![Logo](https://raw.githubusercontent.com/nor0x/Windle/master/wwwroot/img/logo.svg =150x)
+<img src="https://raw.githubusercontent.com/nor0x/Windle/master/wwwroot/img/logo.svg" width="150">
 
 # Welcome to Windle
 ![gh-pages](https://github.com/nor0x/Windle/workflows/gh-pages/badge.svg)
