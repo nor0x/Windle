@@ -202,7 +202,7 @@
                             Debug.WriteLine("miage url: " + imgUrl);
                             var imageUri = new Uri(imgUrl);
                             Http.DefaultRequestHeaders.Add("x-requested-with", "XMLHttpRequest");
-                            if(!imgUrl.Contains("cors-anywhere")) imgUrl = imgUrl + corsBypassHost;
+                            if(!imgUrl.Contains("cors-anywhere")) imgUrl = corsBypassHost + imgUrl;
                             var imageBytes = await Http.GetByteArrayAsync(imgUrl);
                             string imgPath = String.Format("{0}{1}{2}{3}", imageUri.Scheme, Uri.SchemeDelimiter, imageUri.Authority, imageUri.AbsolutePath);
                             string headerImageExtension = System.IO.Path.GetExtension(imgPath).Replace(".", "");
