@@ -213,11 +213,12 @@
                             content = content.Replace(m.Value, @"<img src=""data:image/" + headerImageExtension + ";base64, " + base64String + @""" />");
                         }
 
-
+                        var uri = new Uri(Url);
 
                         var header = "<h1>" + article.Title + "</h1>";
-                        var uri = new Uri(Url);
-                        header = header + "<h2>" + article.Author + " @ " + uri.Host.ToString() + "</h2>";
+                        var website = "<h3>" + uri.ToString() + "</h3>";
+
+                        header = header + website + "<h2>" + article.Author + " @ " + uri.Host.ToString() + "</h2>";
 
                         if (!string.IsNullOrEmpty(article.FeaturedImage))
                         {
@@ -318,6 +319,7 @@
             return false;
         }
     }
+
 
     bool IsValidUrl(string url)
     {
