@@ -216,9 +216,8 @@
                         var uri = new Uri(Url);
 
                         var header = "<h1>" + article.Title + "</h1>";
-                        var website = "<h3>" + uri.ToString() + "</h3>";
 
-                        header = header + website + "<h2>" + article.Author + " @ " + uri.Host.ToString() + "</h2>";
+                        header = header + "<h2>" + article.Author + " @ " + "<a href=''" + uri.ToString() + "'>" + uri.Host.ToString() + "</a></h2>";
 
                         if (!string.IsNullOrEmpty(article.FeaturedImage))
                         {
