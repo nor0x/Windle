@@ -89,7 +89,7 @@
             {
                 @if (done)
                 {
-                    <h1 class="size-plus">
+                    <h1 class="size-plus title-emoji">
                         ✅
                     </h1>
                     <h2 class="size-plus">
@@ -101,7 +101,7 @@
                 }
                 else if (error)
                 {
-                    <h1 class="size-plus">
+                    <h1 class="size-plus title-emoji">
                         💥
                     </h1>
                     <h2 class="size-plus">
@@ -113,7 +113,7 @@
                 }
                 else
                 {
-                    <h1 class="size-plus">
+                    <h1 class="size-plus title-emoji">
                         👋
                     </h1>
                     <h2 class="size-plus">
@@ -163,6 +163,8 @@
     string isEnabledClass = "is-static";
     byte[] byteContent;
     string filename;
+    string corsBypassHost = "https://cors-anywhere.herokuapp.com/";
+
 
     string inputClass = CssBuilder.Default("control is-large").AddClass("is-static", isLoading).Build();
     string buttonClass = CssBuilder.Default("button").AddClass("is-loading", isLoading).Build();
@@ -179,22 +181,29 @@
             if (IsValidEmail(Email) && IsValidUrl(Url))
             {
                 Debug.WriteLine("email and url are valid");
-                SmartReader.Article article = await SmartReader.Reader.ParseArticleAsync("https://cors-anywhere.herokuapp.com/" + Url);
+                SmartReader.Article article = await SmartReader.Reader.ParseArticleAsync(corsBypassHost + Url);
 
                 try
                 {
                     if (article.IsReadable)
                     {
+                        var inputUrl = new Uri(Url);
                         //get all images in content and base64 them
                         string pattern = @"(?i)<img.*?src=""(?<url>.*?)"".*?>";
                         Regex rx = new Regex(pattern);
                         var content = article.Content;
                         foreach (Match m in rx.Matches(content))
                         {
-                            var url = m.Groups["url"].Value;
-                            var imageUri = new Uri(url);
+                            var imgUrl = m.Groups["url"].Value;
+                            if (!imgUrl.Contains(inputUrl.Host))
+                            {
+                                imgUrl = imgUrl.Replace(corsBypassHost, corsBypassHost + inputUrl.Host.Replace("www.", "") + "/");
+                            }
+                            Debug.WriteLine("miage url: " + imgUrl);
+                            var imageUri = new Uri(imgUrl);
                             Http.DefaultRequestHeaders.Add("x-requested-with", "XMLHttpRequest");
-                            var imageBytes = await Http.GetByteArrayAsync("https://cors-anywhere.herokuapp.com/" + url);
+                            if(!imgUrl.Contains("cors-anywhere")) imgUrl = corsBypassHost + imgUrl;
+                            var imageBytes = await Http.GetByteArrayAsync(imgUrl);
                             string imgPath = String.Format("{0}{1}{2}{3}", imageUri.Scheme, Uri.SchemeDelimiter, imageUri.Authority, imageUri.AbsolutePath);
                             string headerImageExtension = System.IO.Path.GetExtension(imgPath).Replace(".", "");
                             if (headerImageExtension == "jpg") headerImageExtension = "jpeg";
@@ -214,7 +223,7 @@
                         if (!string.IsNullOrEmpty(article.FeaturedImage))
                         {
                             var imageUri = new Uri(article.FeaturedImage);
-                            var imageBytes = await Http.GetByteArrayAsync("https://cors-anywhere.herokuapp.com/" + article.FeaturedImage);
+                            var imageBytes = await Http.GetByteArrayAsync(corsBypassHost + article.FeaturedImage);
                             string imgPath = String.Format("{0}{1}{2}{3}", imageUri.Scheme, Uri.SchemeDelimiter, imageUri.Authority, imageUri.AbsolutePath);
                             string headerImageExtension = System.IO.Path.GetExtension(imgPath).Replace(".", "");
                             if (headerImageExtension == "jpg") headerImageExtension = "jpeg";
@@ -280,42 +289,43 @@
         }
     }
 
-        void UpdateUI(bool il, bool er)
+    void UpdateUI(bool il, bool er)
+    {
+        isLoading = il;
+        done = !er;
+        error = er;
+        timer.Interval = 1800;
+        timer.Start();
+        timer.Elapsed += (s, e) =>
         {
-            isLoading = il;
-            done = !er;
-            error = er;
-            timer.Interval = 1800;
-            timer.Start();
-            timer.Elapsed += (s, e) =>
-            {
-                timer.Stop();
-                done = false;
-                error = false;
-                StateHasChanged();
-
-            };
+            timer.Stop();
+            done = false;
+            error = false;
             StateHasChanged();
-        }
 
-        bool IsValidEmail(string email)
-        {
-            try
-            {
-                var addr = new System.Net.Mail.MailAddress(email);
-                return addr.Address == email;
-            }
-            catch
-            {
-                return false;
-            }
-        }
+        };
+        StateHasChanged();
+    }
 
-        bool IsValidUrl(string url)
+    bool IsValidEmail(string email)
+    {
+        try
         {
-            Uri uriResult;
-            bool result = Uri.TryCreate(url, UriKind.Absolute, out uriResult)
-                && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
-            return result;
+            var addr = new System.Net.Mail.MailAddress(email);
+            return addr.Address == email;
+        }
+        catch
+        {
+            return false;
         }
     }
+
+
+    bool IsValidUrl(string url)
+    {
+        Uri uriResult;
+        bool result = Uri.TryCreate(url, UriKind.Absolute, out uriResult)
+            && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
+        return result;
+    }
+}
