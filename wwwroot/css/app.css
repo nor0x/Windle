@@ -30,6 +30,8 @@ html {
 
 input#e-menu:checked ~ div.e-menu {
     background-color: transparent !important;
+    position: absolute;
+    top: 50px;
 }
 
 .main-container {
